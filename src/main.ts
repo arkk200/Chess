@@ -7,6 +7,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader';
+import { createOutlineSegments } from './outline';
 
 
 class App {
@@ -20,9 +21,10 @@ class App {
   composer!: EffectComposer;
   outlinePass!: OutlinePass;
   effectFXAA!: ShaderPass;
+  prevIntersectChessPiece!: THREE.Object3D;
 
   constructor() {
-    this.setupInit();
+    this.setupDefault();
     this.setupLights();
     this.setupModels();
     this.setEvents();
@@ -31,7 +33,7 @@ class App {
 
 
 
-  setupInit() {
+  setupDefault() {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color("gray");
 
@@ -48,9 +50,7 @@ class App {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     document.body.appendChild(this.renderer.domElement);
 
-    const renderTarget = new THREE.WebGLRenderTarget(1024, 1024, {
-      stencilBuffer: true
-    });
+    const renderTarget = new THREE.WebGLRenderTarget(1024, 1024, { stencilBuffer: true });
 
 
 
@@ -62,16 +62,27 @@ class App {
     this.composer.addPass(renderPass);
 
     this.outlinePass = new OutlinePass(new THREE.Vector2(window.innerWidth, window.innerHeight), this.scene, this.camera);
+    this.outlinePass.edgeStrength = 10;
+    this.outlinePass.edgeGlow = 1;
+    this.outlinePass.edgeThickness = 4;
+    this.outlinePass.visibleEdgeColor.set("white");
+    this.outlinePass.hiddenEdgeColor.set("white");
     this.composer.addPass(this.outlinePass);
 
     this.effectFXAA = new ShaderPass(FXAAShader);
     this.effectFXAA.uniforms['resolution'].value.set(0, 0);
     this.effectFXAA.renderToScreen = true;
     this.composer.addPass(this.effectFXAA);
-    
+
 
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls.minDistance = 40;
+    this.controls.maxDistance = 100;
+    this.controls.enablePan = false;
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.05;
+    this.controls.zoomSpeed = 0.5;
   }
 
 
@@ -80,7 +91,7 @@ class App {
     const light = new THREE.AmbientLight("white", 0.5);
     this.scene.add(light);
 
-    for(let i = 0; i < 4; i++) {
+    for (let i = 0; i < 4; i++) {
       this.pLight = new THREE.PointLight("white", 1);
       this.pLight.position.set(200 * (Math.floor(i / 2) > 0 ? -1 : 1), 40, 200 * (i % 2 === 0 ? -1 : 1));
       this.scene.add(this.pLight);
@@ -90,7 +101,7 @@ class App {
 
 
   setupModels() {
-    new GLTFLoader().load("/chess.glb", gltf =>  {
+    new GLTFLoader().load("/chess.glb", gltf => {
       this.models = gltf.scene
       this.createBoard();
       this.createPieces();
@@ -114,9 +125,9 @@ class App {
 
   }
   createPawn() {
-    for(let i = 0; i < 8; i++) {
-      this.createPiece({ x: -14 + i * 4, y: 0.5, z: -10}, "Black-Pawn");
-      this.createPiece({ x: -14 + i * 4, y: 0.5, z: 10}, "White-Pawn");
+    for (let i = 0; i < 8; i++) {
+      this.createPiece({ x: -14 + i * 4, y: 0.5, z: -10 }, "Black-Pawn");
+      this.createPiece({ x: -14 + i * 4, y: 0.5, z: 10 }, "White-Pawn");
     }
   }
   createPiece(boardPos: { x: number, y: number, z: number }, name: string) {
@@ -129,6 +140,7 @@ class App {
 
   setEvents() {
     window.addEventListener('resize', this.onResize);
+    window.addEventListener('mousemove', this.onMouseMove);
     window.addEventListener('mousedown', this.onMouseDown);
   }
   onResize = () => {
@@ -136,7 +148,7 @@ class App {
     this.camera.updateProjectionMatrix();
 
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.setSize( window.innerWidth, window.innerHeight );
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
 
     // this.composer.setSize( window.innerWidth, window.innerHeight );
     this.composer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -144,7 +156,7 @@ class App {
 
     // this.effectFXAA.uniforms.resolution.value.set( 1 / window.innerWidth, 1 / window.innerHeight );
   }
-  onMouseDown = (e: MouseEvent) => {
+  getIntesectObject(e: MouseEvent) {
     const mouse = {
       x: (e.clientX / window.innerWidth) * 2 - 1,
       y: -(e.clientY / window.innerHeight) * 2 + 1
@@ -152,32 +164,39 @@ class App {
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, this.camera);
     const intersects = raycaster.intersectObjects(this.scene.children);
-    if(intersects.length === 0) return;
+    if (intersects.length === 0) return null;
+    return intersects[0].object;
+  }
+  onMouseMove = (e: MouseEvent) => {
+    let hoverObject = this.getIntesectObject(e);
+    if (!hoverObject) return;
 
-    let intersect;
-    intersect = raycaster.intersectObjects(this.scene.children)[0].object;
-    if(intersect.name.startsWith("Cube")) { // 만약 보드를 클릭했다면
-      intersect = intersect.parent;
+    if (hoverObject.name.startsWith("Cube")) { // 보드에 호버했을 때
+
+    } else { // 체스 말을 호버했을 때
+      this.outlinePass.selectedObjects = Array.from([hoverObject]);
+    }
+  }
+  onMouseDown = (e: MouseEvent) => {
+    let intersectObject = this.getIntesectObject(e);
+
+    if (!intersectObject) return;
+
+    if (intersectObject.name.startsWith("Cube")) { // 보드를 클릭했다면
+      intersectObject = intersectObject.parent;
 
     } else { // 체스 말을 클릭했다면
-      this.outlinePass.visibleEdgeColor.set("red");
-      this.outlinePass.hiddenEdgeColor.set("red");
-      this.outlinePass.edgeStrength = 10;
-      this.outlinePass.edgeGlow = 1;
-      this.outlinePass.edgeThickness = 4;
-      this.outlinePass.selectedObjects.push(intersect);
-
+      this.prevIntersectChessPiece = intersectObject;
     }
-
-    console.log(intersect)
   }
 
 
-  
+
   setupRendering() {
     const animate = () => {
       requestAnimationFrame(animate);
-      // this.renderer.render(this.scene, this.camera);
+
+      this.controls.update();
       this.composer.render();
     }
     animate();
