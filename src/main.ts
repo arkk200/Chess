@@ -26,8 +26,10 @@ class App {
     this.setupLights();
     this.setupModels();
     this.setEvents();
-    this.setupRender();
+    this.setupRendering();
   }
+
+
 
   setupInit() {
     this.scene = new THREE.Scene();
@@ -42,13 +44,15 @@ class App {
     this.camera.position.set(0, 30, 30);
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     document.body.appendChild(this.renderer.domElement);
 
+
+
     this.composer = new EffectComposer(this.renderer);
-    this.composer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.composer.setSize(window.innerWidth, window.innerHeight);
+    this.composer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
     const renderPass = new RenderPass(this.scene, this.camera);
     this.composer.addPass(renderPass);
@@ -61,8 +65,12 @@ class App {
     this.effectFXAA.renderToScreen = true;
     this.composer.addPass(this.effectFXAA);
     
+
+
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
   }
+
+
 
   setupLights() {
     const light = new THREE.AmbientLight("white", 0.5);
@@ -91,7 +99,6 @@ class App {
   createPieces() {
     const chessPieces = this.models.getObjectByName("ChessPieces");
     if(chessPieces) this.chessPieces = chessPieces;
-    console.log(chessPieces?.children.map(obj => obj.name));
 
     this.createPawn();
     this.createPiece({ x: -14, y: 0.5, z: -14 }, "Black-Rook"); this.createPiece({ x: 14, y: 0.5, z: -14 }, "Black-Rook");
@@ -102,6 +109,7 @@ class App {
     this.createPiece({ x: -10, y: 0.5, z: 14 }, "White-Knight"); this.createPiece({ x: 10, y: 0.5, z: 14 }, "White-Knight");
     this.createPiece({ x: -6, y: 0.5, z: 14 }, "White-Bishop"); this.createPiece({ x: 6, y: 0.5, z: 14 }, "White-Bishop");
     this.createPiece({ x: -2, y: 0.5, z: 14 }, "White-Queen"); this.createPiece({ x: 2, y: 0.5, z: 14 }, "White-King");
+
   }
   createPawn() {
     for(let i = 0; i < 8; i++) {
@@ -151,6 +159,9 @@ class App {
 
     } else { // 체스 말을 클릭했다면
       this.outlinePass.visibleEdgeColor.set("red");
+      this.outlinePass.hiddenEdgeColor.set("red");
+      this.outlinePass.edgeStrength = 10;
+      this.outlinePass.edgeThickness = 4;
       this.outlinePass.selectedObjects.push(intersect);
 
     }
@@ -158,7 +169,9 @@ class App {
     console.log(intersect)
   }
 
-  setupRender() {
+
+  
+  setupRendering() {
     const animate = () => {
       requestAnimationFrame(animate);
       // this.renderer.render(this.scene, this.camera);
