@@ -48,9 +48,13 @@ class App {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     document.body.appendChild(this.renderer.domElement);
 
+    const renderTarget = new THREE.WebGLRenderTarget(1024, 1024, {
+      stencilBuffer: true
+    });
 
 
-    this.composer = new EffectComposer(this.renderer);
+
+    this.composer = new EffectComposer(this.renderer, renderTarget);
     this.composer.setSize(window.innerWidth, window.innerHeight);
     this.composer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
@@ -61,7 +65,7 @@ class App {
     this.composer.addPass(this.outlinePass);
 
     this.effectFXAA = new ShaderPass(FXAAShader);
-    this.effectFXAA.uniforms.resolution.value.set(1 / window.innerWidth, 1 / window.innerHeight);
+    this.effectFXAA.uniforms['resolution'].value.set(0, 0);
     this.effectFXAA.renderToScreen = true;
     this.composer.addPass(this.effectFXAA);
     
@@ -94,11 +98,9 @@ class App {
   }
   createBoard() {
     const board = this.models.getObjectByName("Board");
-    if(board) this.scene.add(board);
+    board && this.scene.add(board);
   }
   createPieces() {
-    const chessPieces = this.models.getObjectByName("ChessPieces");
-    if(chessPieces) this.chessPieces = chessPieces;
 
     this.createPawn();
     this.createPiece({ x: -14, y: 0.5, z: -14 }, "Black-Rook"); this.createPiece({ x: 14, y: 0.5, z: -14 }, "Black-Rook");
@@ -118,7 +120,7 @@ class App {
     }
   }
   createPiece(boardPos: { x: number, y: number, z: number }, name: string) {
-    const piece = this.chessPieces.getObjectByName(name)?.clone();
+    const piece = this.models.getObjectByName(name)?.clone();
     piece?.position.set(boardPos.x, boardPos.y, boardPos.z);
     piece && this.scene.add(piece);
   }
@@ -140,7 +142,7 @@ class App {
     this.composer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     this.composer.setSize(window.innerWidth * window.devicePixelRatio, window.innerHeight * window.devicePixelRatio);
 
-    this.effectFXAA.uniforms.resolution.value.set( 1 / window.innerWidth, 1 / window.innerHeight );
+    // this.effectFXAA.uniforms.resolution.value.set( 1 / window.innerWidth, 1 / window.innerHeight );
   }
   onMouseDown = (e: MouseEvent) => {
     const mouse = {
@@ -161,6 +163,7 @@ class App {
       this.outlinePass.visibleEdgeColor.set("red");
       this.outlinePass.hiddenEdgeColor.set("red");
       this.outlinePass.edgeStrength = 10;
+      this.outlinePass.edgeGlow = 1;
       this.outlinePass.edgeThickness = 4;
       this.outlinePass.selectedObjects.push(intersect);
 
