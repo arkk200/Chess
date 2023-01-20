@@ -15,27 +15,20 @@ class App {
   renderer!: THREE.WebGLRenderer;
   models!: THREE.Object3D;
   controls!: OrbitControls;
-  pLight!: THREE.PointLight;
-  chessPieces!: THREE.Object3D;
+  pointLight!: THREE.PointLight;
   composer!: EffectComposer;
   outlinePass!: OutlinePass;
   effectFXAA!: ShaderPass;
-  prevIntersectChessPiece!: THREE.Object3D;
-  board2DArray: THREE.Mesh[][];
-  matrixIndex!: { x: number, y: number };
-  newMesh!: THREE.Mesh;
+  chessPiecesName: string[];
 
   constructor() {
-    this.board2DArray = [];
-
+    this.chessPiecesName = ['BP1', 'BP2', 'BP3', 'BP4', 'BP5', 'BP6', 'BP7', 'BP8', 'BR1', 'BR2', 'BN1', 'BN2', 'BB1', 'BB2', 'BQ', 'BK', 'WP1', 'WP2', 'WP3', 'WP4', 'WP5', 'WP6', 'WP7', 'WP8', 'WR1', 'WR2', 'WN1', 'WN2', 'WB1', 'WB2', 'WQ', 'WK'];
     this.setupDefault();
     this.setupLights();
     this.setupModels();
     this.setEvents();
     this.setupRendering();
   }
-
-
 
   setupDefault() {
     this.scene = new THREE.Scene();
@@ -89,20 +82,16 @@ class App {
     this.controls.zoomSpeed = 0.5;
   }
 
-
-
   setupLights() {
     const light = new THREE.AmbientLight("white", 0.5);
     this.scene.add(light);
 
     for (let i = 0; i < 4; i++) {
-      this.pLight = new THREE.PointLight("white", 1);
-      this.pLight.position.set(200 * (Math.floor(i / 2) > 0 ? -1 : 1), 40, 200 * (i % 2 === 0 ? -1 : 1));
-      this.scene.add(this.pLight);
+      this.pointLight = new THREE.PointLight("white", 1);
+      this.pointLight.position.set(200 * (Math.floor(i / 2) > 0 ? -1 : 1), 40, 200 * (i % 2 === 0 ? -1 : 1));
+      this.scene.add(this.pointLight);
     }
   }
-
-
 
   setupModels() {
     new GLTFLoader().load("/chess.glb", gltf => {
@@ -116,16 +105,6 @@ class App {
     if(!board) return;
 
     this.scene.add(board);
-    for(let i = 0; i < 8; i++)
-      this.board2DArray.push((board.children.slice(i * 8, i * 8 + 8) as THREE.Mesh[]));
-    // for(let i = 0; i < 8; i++) {
-    //   for(let j = 0; j < 8; j++) {
-    //     const newGeometry = (this.board2DArray[i][j].children[0] as THREE.Mesh).geometry.clone()
-    //     const mesh = new THREE.Mesh(newGeometry, new THREE.MeshStandardMaterial({ color: "red", transparent: true, opacity: 0.5 }))
-    //     this.board2DArray[i][j].add(mesh);
-    //     // console.log(this.board2DArray[i][j])
-    //   }
-    // }
   }
   createPieces() {
 
@@ -153,8 +132,6 @@ class App {
     piece && this.scene.add(piece);
   }
 
-
-
   setEvents() {
     window.addEventListener('resize', this.onResize);
     window.addEventListener('mousedown', this.onMouseDown);
@@ -178,9 +155,8 @@ class App {
     if (intersectObject.name.startsWith("Cube")) { // 보드를 클릭했다면
       intersectObject = intersectObject.parent;
 
-    } else { // 체스 말을 클릭했다면
+    } else if (this.chessPiecesName.includes(intersectObject.name)) { // 체스 말을 클릭했다면
       this.outlinePass.selectedObjects = Array.from([intersectObject]);
-      this.showGuide(intersectObject as THREE.Mesh);
     }
   }
   getIntesectObject(e: MouseEvent) {
@@ -194,34 +170,6 @@ class App {
     if (intersects.length === 0) return null;
     return intersects[0].object;
   }
-  showGuide(intersectObject: THREE.Mesh) {
-    if(this.matrixIndex)
-      this.deleteGuide();
-    const name = intersectObject.name;
-    this.matrixIndex = this.getConvertedMatrix(intersectObject.position);
-
-    const mesh = this.board2DArray[this.matrixIndex.y][this.matrixIndex.x].children[0] as THREE.Mesh;
-    this.newMesh = new THREE.Mesh(
-      mesh.geometry.clone(),
-      new THREE.MeshStandardMaterial({ color: "red", transparent: true, opacity: 0.5 })
-    )
-    this.board2DArray[this.matrixIndex.y][this.matrixIndex.x].add(this.newMesh);
-    if(name.startsWith('B')) {
-
-    } else if(name.startsWith('W')) {
-
-    }
-  }
-  deleteGuide() {
-    this.board2DArray[this.matrixIndex.y][this.matrixIndex.x].remove(this.newMesh);
-  }
-  getConvertedMatrix(position: THREE.Vector3): { x: number, y: number } {
-    const x = Math.round((position.x + 14) / 4);
-    const y = Math.round((position.z + 14) / 4);
-    return { x, y };
-  }
-
-
 
   setupRendering() {
     const animate = () => {
