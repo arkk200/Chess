@@ -7,7 +7,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader';
-import { createOutlineSegments } from './outline';
+import { getIntesectObject } from './utils';
 
 
 class App {
@@ -140,7 +140,6 @@ class App {
 
   setEvents() {
     window.addEventListener('resize', this.onResize);
-    window.addEventListener('mousemove', this.onMouseMove);
     window.addEventListener('mousedown', this.onMouseDown);
   }
   onResize = () => {
@@ -156,37 +155,15 @@ class App {
 
     // this.effectFXAA.uniforms.resolution.value.set( 1 / window.innerWidth, 1 / window.innerHeight );
   }
-  getIntesectObject(e: MouseEvent) {
-    const mouse = {
-      x: (e.clientX / window.innerWidth) * 2 - 1,
-      y: -(e.clientY / window.innerHeight) * 2 + 1
-    }
-    const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(mouse, this.camera);
-    const intersects = raycaster.intersectObjects(this.scene.children);
-    if (intersects.length === 0) return null;
-    return intersects[0].object;
-  }
-  onMouseMove = (e: MouseEvent) => {
-    let hoverObject = this.getIntesectObject(e);
-    if (!hoverObject) return;
-
-    if (hoverObject.name.startsWith("Cube")) { // 보드에 호버했을 때
-
-    } else { // 체스 말을 호버했을 때
-      this.outlinePass.selectedObjects = Array.from([hoverObject]);
-    }
-  }
   onMouseDown = (e: MouseEvent) => {
-    let intersectObject = this.getIntesectObject(e);
-
+    let intersectObject = getIntesectObject(e, this.scene, this.camera);
     if (!intersectObject) return;
 
     if (intersectObject.name.startsWith("Cube")) { // 보드를 클릭했다면
       intersectObject = intersectObject.parent;
 
     } else { // 체스 말을 클릭했다면
-      this.prevIntersectChessPiece = intersectObject;
+      this.outlinePass.selectedObjects = Array.from([intersectObject]);
     }
   }
 
