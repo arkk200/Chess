@@ -8,6 +8,7 @@ import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader';
 import gsap from 'gsap';
+import deepcopy from 'lodash/cloneDeep';
 
 class App {
   scene!: THREE.Scene;
@@ -235,6 +236,7 @@ class App {
           this.scene.remove(this.boardMat[matrix.x][matrix.y] as THREE.Object3D);
         }
         this.boardMat[movMat.x][movMat.y] = this.boardMat[curMat.x][curMat.y];
+        this.boardMat[curMat.x][curMat.y] = undefined;
         
         this.guidemesh && this.scene.remove(this.guidemesh);
         this.prevIntersectChessPiece = null;
