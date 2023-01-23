@@ -8,8 +8,8 @@ import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader';
 import gsap from 'gsap';
-import { update } from 'firebase/database';
-import { ridref, setSavedChessNameMat } from './main';
+import { child, update } from 'firebase/database';
+import { ridref, bref } from './main';
 
 export class App {
   scene!: THREE.Scene;
@@ -27,19 +27,19 @@ export class App {
   tl!: GSAPTimeline;
   playerColor: string;
   turn: string;
-  chessNameMat: (string | undefined)[][];
+  chessNameMat: (string | 0)[][];
 
   constructor() {
     this.playerColor = "";
     this.turn = "W";
     this.chessNameMat = [
       ["Black-Rook", "Black-Knight", "Black-Bishop", "Black-Queen", "Black-King", "Black-Bishop", "Black-Knight", "Black-Rook"],
-      ["Black-Pawn", "Black-Pawn", "Black-Pawn", "Black-Pawn", "Black-Pawn", "Black-Pawn", "Black-Pawn", "Black-Pawn"],
-      [],
-      [],
-      [],
-      [],
-      ["White-Pawn", "White-Pawn", "White-Pawn", "White-Pawn", "White-Pawn", "White-Pawn", "White-Pawn", "White-Pawn"],
+      new Array(8).fill("Black-Pawn"),
+      new Array(8).fill(0),
+      new Array(8).fill(0),
+      new Array(8).fill(0),
+      new Array(8).fill(0),
+      new Array(8).fill("White-Pawn"),
       ["White-Rook", "White-Knight", "White-Bishop", "White-Queen", "White-King", "White-Bishop", "White-Knight", "White-Rook"]
     ];
 
@@ -141,7 +141,7 @@ export class App {
 
     for(let i = 0; i < 8; i++) {
       for(let j = 0; j < 8; j++) {
-        if(this.chessNameMat[i][j]) {
+        if(this.chessNameMat[i][j] !== 0) {
           this.createPiece(this.getConvertedPosFromMat({ x: i, y: j }), this.chessNameMat[i][j] as string);
         }
       }
@@ -244,18 +244,20 @@ export class App {
       
       this.tl.to({}, { onUpdate: () => {
         const matrix = this.getConvertedMatFromPos((intersectObject as THREE.Object3D).position);
-        if(this.chessNameMat[matrix.x][matrix.y]) {
+        if(this.chessNameMat[matrix.x][matrix.y] !== 0) {
           this.scene.remove(this.scene.getObjectByName(this.chessNameMat[matrix.x][matrix.y] as string) as THREE.Object3D);
         }
         this.chessNameMat[movMat.x][movMat.y] = this.chessNameMat[curMat.x][curMat.y];
-        this.chessNameMat[curMat.x][curMat.y] = undefined;
-        setSavedChessNameMat(this.chessNameMat);
+        this.chessNameMat[curMat.x][curMat.y] = 0;
         
         this.guidemesh && this.scene.remove(this.guidemesh);
         this.prevIntersectChessPiece = null;
       }, duration: 0});
       this.turn = this.turn === "W" ? "B" : "W";
+      console.log(this.chessNameMat);
       update(ridref, { turn: this.turn });
+      update(child(bref, `/${movMat.x}`), { [movMat.y]: this.chessNameMat[curMat.x][curMat.y] });
+      update(child(bref, `/${curMat.x}`), { [curMat.y]: 0 });
     }
   }
   getConvertedMatFromPos(position: THREE.Vector3) {
