@@ -7,19 +7,22 @@ import { App } from './chess';
 
 let uid: string;
 let rref = ref(db, 'rooms');
-let pref: DatabaseReference = ref(db, 'players');;
+let pref: DatabaseReference = ref(db, 'players');
 let uref: DatabaseReference;
 let isAlreadyJoin: boolean = false;
+let chessNameMat: (string | undefined)[][];
 
 function createRoom(data: DataSnapshot) {
   console.log(data);
   
   const app = new App();
+  chessNameMat = app.chessNameMat;
+  app.setChess();
   console.log("app:", app);
   if(uid === Object.keys(data)[0]) {
     let rid = uuidv4();
     let ridref: DatabaseReference = ref(db, `rooms/${rid}`);
-    set(ridref, {...data, "board": JSON.stringify(app.chessNameMat)});
+    set(ridref, {...data, "board": JSON.stringify(chessNameMat)});
     console.log("Deleting...");
     remove(pref).then(() => console.log("delete succeed"));
   }
@@ -35,15 +38,22 @@ onAuthStateChanged(auth, async (user) => {
     await get(rref).then((snapshot: DataSnapshot) => {
       // 이미 방에 참가돼 있는지 확인
       const data = snapshot.val();
-      try {
-        isAlreadyJoin = Object.values(data).some(obj => {
-          return Object.keys(obj as {}).some(key => key === uid)
+      if(data) {
+        isAlreadyJoin = Object.values(data).some((obj) => {
+          const isExist = Object.keys(obj as {}).some(key => key === uid);
+          if(isExist) chessNameMat = JSON.parse((obj as { board: string }).board)
+          return isExist;
         });
-      } catch {
       }
     });
 
-    if(!isAlreadyJoin) {
+    if(isAlreadyJoin) {
+      // 이미 참가하고 있다면
+      const app = new App();
+      app.chessNameMat = chessNameMat;
+      console.log("app:", app);
+      app.setChess();
+    } else {
       // 참가하지 않았다면 참가시키기
       get(pref).then((snapshot: DataSnapshot) => {
         const data = snapshot.val();
@@ -71,10 +81,6 @@ onAuthStateChanged(auth, async (user) => {
       });
   
       onDisconnect(uref).remove();
-    } else {
-      // 이미 참가하고 있다면
-      const app = new App();
-      console.log("app:", app);
     }
   } else {
     // logged out.

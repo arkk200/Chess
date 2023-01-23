@@ -23,11 +23,10 @@ export class App {
   prevIntersectChessPiece!: THREE.Object3D | null;
   guidemesh!: THREE.Mesh;
   tl!: GSAPTimeline;
-  turn: string;
+  turn!: string;
   chessNameMat: (string | undefined)[][];
 
   constructor() {
-    this.turn = "W";
     this.chessNameMat = [
       ["Black-Rook", "Black-Knight", "Black-Bishop", "Black-Queen", "Black-King", "Black-Bishop", "Black-Knight", "Black-Rook"],
       ["Black-Pawn", "Black-Pawn", "Black-Pawn", "Black-Pawn", "Black-Pawn", "Black-Pawn", "Black-Pawn", "Black-Pawn"],
@@ -40,6 +39,10 @@ export class App {
     ];
 
     this.chessPiecesName = ["Black-Rook", "Black-Knight", "Black-Bishop", "Black-Queen", "Black-King", "Black-Pawn", "White-Rook", "White-Knight", "White-Bishop", "White-Queen", "White-King", "White-Pawn"];
+  }
+
+  setChess() {
+    this.turn = "W";
     this.setupDefault();
     this.setupLights();
     this.setupModels();
