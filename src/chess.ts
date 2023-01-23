@@ -24,13 +24,22 @@ export class App {
   guidemesh!: THREE.Mesh;
   tl!: GSAPTimeline;
   turn: string;
-  boardMat: (THREE.Object3D | undefined)[][];
+  chessNameMat: (string | undefined)[][];
 
   constructor() {
     this.turn = "W";
-    this.boardMat = [[], [], [], [], [], [], [], []];
+    this.chessNameMat = [
+      ["Black-Rook", "Black-Knight", "Black-Bishop", "Black-Queen", "Black-King", "Black-Bishop", "Black-Knight", "Black-Rook"],
+      ["Black-Pawn", "Black-Pawn", "Black-Pawn", "Black-Pawn", "Black-Pawn", "Black-Pawn", "Black-Pawn", "Black-Pawn"],
+      [],
+      [],
+      [],
+      [],
+      ["White-Pawn", "White-Pawn", "White-Pawn", "White-Pawn", "White-Pawn", "White-Pawn", "White-Pawn", "White-Pawn"],
+      ["White-Rook", "White-Knight", "White-Bishop", "White-Queen", "White-King", "White-Bishop", "White-Knight", "White-Rook"]
+    ];
 
-    this.chessPiecesName = ['BP1', 'BP2', 'BP3', 'BP4', 'BP5', 'BP6', 'BP7', 'BP8', 'BR1', 'BR2', 'BN1', 'BN2', 'BB1', 'BB2', 'BQ', 'BK', 'WP1', 'WP2', 'WP3', 'WP4', 'WP5', 'WP6', 'WP7', 'WP8', 'WR1', 'WR2', 'WN1', 'WN2', 'WB1', 'WB2', 'WQ', 'WK'];
+    this.chessPiecesName = ["Black-Rook", "Black-Knight", "Black-Bishop", "Black-Queen", "Black-King", "Black-Pawn", "White-Rook", "White-Knight", "White-Bishop", "White-Queen", "White-King", "White-Pawn"];
     this.setupDefault();
     this.setupLights();
     this.setupModels();
@@ -116,28 +125,20 @@ export class App {
   }
   createPieces() {
 
-    this.createPawn();
-    this.boardMat[0][0] = this.createPiece({ x: -14, y: 0.5, z: -14 }, "Black-Rook", 'BR1'); this.boardMat[0][7] = this.createPiece({ x: 14, y: 0.5, z: -14 }, "Black-Rook", 'BR2');
-    this.boardMat[0][1] = this.createPiece({ x: -10, y: 0.5, z: -14 }, "Black-Knight", 'BN1'); this.boardMat[0][6] = this.createPiece({ x: 10, y: 0.5, z: -14 }, "Black-Knight", 'BN2');
-    this.boardMat[0][2] = this.createPiece({ x: -6, y: 0.5, z: -14 }, "Black-Bishop", 'BB1'); this.boardMat[0][5] = this.createPiece({ x: 6, y: 0.5, z: -14 }, "Black-Bishop", 'BB2');
-    this.boardMat[0][3] = this.createPiece({ x: -2, y: 0.5, z: -14 }, "Black-Queen", 'BQ'); this.boardMat[0][4] = this.createPiece({ x: 2, y: 0.5, z: -14 }, "Black-King", 'BK');
-    this.boardMat[7][0] = this.createPiece({ x: -14, y: 0.5, z: 14 }, "White-Rook", 'WR1'); this.boardMat[7][7] = this.createPiece({ x: 14, y: 0.5, z: 14 }, "White-Rook", 'WR2');
-    this.boardMat[7][1] = this.createPiece({ x: -10, y: 0.5, z: 14 }, "White-Knight", 'WN1'); this.boardMat[7][6] = this.createPiece({ x: 10, y: 0.5, z: 14 }, "White-Knight", 'WN2');
-    this.boardMat[7][2] = this.createPiece({ x: -6, y: 0.5, z: 14 }, "White-Bishop", 'WB1'); this.boardMat[7][5] = this.createPiece({ x: 6, y: 0.5, z: 14 }, "White-Bishop", 'WB2');
-    this.boardMat[7][3] = this.createPiece({ x: -2, y: 0.5, z: 14 }, "White-Queen", 'WQ'); this.boardMat[7][4] = this.createPiece({ x: 2, y: 0.5, z: 14 }, "White-King", 'WK');
-  }
-  createPawn() {
-    for (let i = 0; i < 8; i++) {
-      this.boardMat[1][i] = this.createPiece({ x: -14 + i * 4, y: 0.5, z: -10 }, "Black-Pawn", `BP${i+1}`);
-      this.boardMat[6][i] = this.createPiece({ x: -14 + i * 4, y: 0.5, z: 10 }, "White-Pawn", `WP${i+1}`);
+    for(let i = 0; i < 8; i++) {
+      for(let j = 0; j < 8; j++) {
+        if(this.chessNameMat[i][j]) {
+          this.createPiece(this.getConvertedPosFromMat({ x: i, y: j }), this.chessNameMat[i][j] as string);
+        }
+      }
     }
   }
-  createPiece(boardPos: { x: number, y: number, z: number }, name: string, meshName: string) {
+  createPiece(boardPos: THREE.Vector3, name: string) {
     const piece = this.models.getObjectByName(name)?.clone();
     piece?.position.set(boardPos.x, boardPos.y, boardPos.z);
-    if (piece) piece.name = meshName;
+    if (piece) piece.name = name;
     piece && this.scene.add(piece);
-    return piece;
+    return piece!.name;
   }
 
   setEvents() {
@@ -194,8 +195,6 @@ export class App {
     this.guidemesh.rotateX(Math.PI / -2);
     this.guidemesh.name = "Guide";
     this.scene.add(this.guidemesh);
-
-    // console.log(intersectObject);
   }
   onMouseUp = (e: MouseEvent) => {
     if(this.tl && this.tl.isActive()) return;
@@ -225,29 +224,32 @@ export class App {
       if(!this.prevIntersectChessPiece) return;
       this.outlinePass.selectedObjects = [];
       this.tl = gsap.timeline();
-      const curMat = this.getConvertedMat(this.prevIntersectChessPiece.position);
-      const movMat = this.getConvertedMat(intersectObject.position);
+      const curMat = this.getConvertedMatFromPos(this.prevIntersectChessPiece.position);
+      const movMat = this.getConvertedMatFromPos(intersectObject.position);
       this.tl.to(this.prevIntersectChessPiece.position, { x: intersectObject?.position.x, z: intersectObject?.position.z, duration: 1, ease: "power2.inOut" });
       
       this.tl.to({}, { onUpdate: () => {
-        const matrix = this.getConvertedMat((intersectObject as THREE.Object3D).position);
-        if(this.boardMat[matrix.x][matrix.y]) {
-          this.scene.remove(this.boardMat[matrix.x][matrix.y] as THREE.Object3D);
+        const matrix = this.getConvertedMatFromPos((intersectObject as THREE.Object3D).position);
+        if(this.chessNameMat[matrix.x][matrix.y]) {
+          this.scene.remove(this.scene.getObjectByName(this.chessNameMat[matrix.x][matrix.y] as string) as THREE.Object3D);
         }
-        this.boardMat[movMat.x][movMat.y] = this.boardMat[curMat.x][curMat.y];
-        this.boardMat[curMat.x][curMat.y] = undefined;
+        this.chessNameMat[movMat.x][movMat.y] = this.chessNameMat[curMat.x][curMat.y];
+        this.chessNameMat[curMat.x][curMat.y] = undefined;
         
         this.guidemesh && this.scene.remove(this.guidemesh);
         this.prevIntersectChessPiece = null;
-        console.log(this.boardMat, this.scene);
+        console.log(this.chessNameMat, this.scene);
       }, duration: 0});
       this.turn = this.turn === "W" ? "B" : "W";
     }
   }
-  getConvertedMat(position: THREE.Vector3) {
+  getConvertedMatFromPos(position: THREE.Vector3) {
     const x = Math.floor((position.z + 14) / 4);
     const y = Math.floor((position.x + 14) / 4);
     return { x, y };
+  }
+  getConvertedPosFromMat(mat: { x: number, y: number }) {
+    return new THREE.Vector3(-14 + mat.y * 4, 0.5, -14 + mat.x * 4);
   }
   
 
