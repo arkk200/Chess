@@ -8,6 +8,8 @@ import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader';
 import gsap from 'gsap';
+import { update } from 'firebase/database';
+import { ridref, setSavedChessNameMat } from './main';
 
 export class App {
   scene!: THREE.Scene;
@@ -23,10 +25,13 @@ export class App {
   prevIntersectChessPiece!: THREE.Object3D | null;
   guidemesh!: THREE.Mesh;
   tl!: GSAPTimeline;
-  turn!: string;
+  playerColor: string;
+  turn: string;
   chessNameMat: (string | undefined)[][];
 
   constructor() {
+    this.playerColor = "";
+    this.turn = "W";
     this.chessNameMat = [
       ["Black-Rook", "Black-Knight", "Black-Bishop", "Black-Queen", "Black-King", "Black-Bishop", "Black-Knight", "Black-Rook"],
       ["Black-Pawn", "Black-Pawn", "Black-Pawn", "Black-Pawn", "Black-Pawn", "Black-Pawn", "Black-Pawn", "Black-Pawn"],
@@ -42,7 +47,13 @@ export class App {
   }
 
   setChess() {
-    this.turn = "W";
+    // get(ridref).then((snapshot: DataSnapshot) => {
+    //   const data = snapshot.val();
+    //   console.log(data);
+    //   // if(data) {
+    //   //   this.turn = data.turn;
+    //   // }
+    // });
     this.setupDefault();
     this.setupLights();
     this.setupModels();
@@ -205,7 +216,7 @@ export class App {
     let intersectObject = this.getIntesectObject(e);
     if (!intersectObject) return;
 
-    if (this.chessPiecesName.includes(intersectObject.name) && intersectObject.name.startsWith(this.turn)) { // 체스 말을 클릭했다면
+    if (this.chessPiecesName.includes(intersectObject.name) && intersectObject.name.startsWith(this.turn) && this.turn === this.playerColor) { // 체스 말을 클릭했다면
       if(intersectObject === this.prevIntersectChessPiece) { // 같은 말을 한번 더 눌렀다면
         this.guidemesh && this.scene.remove(this.guidemesh);
         this.outlinePass.selectedObjects = [];
@@ -238,12 +249,13 @@ export class App {
         }
         this.chessNameMat[movMat.x][movMat.y] = this.chessNameMat[curMat.x][curMat.y];
         this.chessNameMat[curMat.x][curMat.y] = undefined;
+        setSavedChessNameMat(this.chessNameMat);
         
         this.guidemesh && this.scene.remove(this.guidemesh);
         this.prevIntersectChessPiece = null;
-        console.log(this.chessNameMat, this.scene);
       }, duration: 0});
       this.turn = this.turn === "W" ? "B" : "W";
+      update(ridref, { turn: this.turn });
     }
   }
   getConvertedMatFromPos(position: THREE.Vector3) {
