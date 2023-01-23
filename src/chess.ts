@@ -8,8 +8,8 @@ import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader';
 import gsap from 'gsap';
-import { child, update } from 'firebase/database';
-import { ridref, bref } from './main';
+import { update } from 'firebase/database';
+import { ridref } from './main';
 
 export class App {
   scene!: THREE.Scene;
@@ -47,13 +47,6 @@ export class App {
   }
 
   setChess() {
-    // get(ridref).then((snapshot: DataSnapshot) => {
-    //   const data = snapshot.val();
-    //   console.log(data);
-    //   // if(data) {
-    //   //   this.turn = data.turn;
-    //   // }
-    // });
     this.setupDefault();
     this.setupLights();
     this.setupModels();
@@ -249,15 +242,12 @@ export class App {
         }
         this.chessNameMat[movMat.x][movMat.y] = this.chessNameMat[curMat.x][curMat.y];
         this.chessNameMat[curMat.x][curMat.y] = 0;
+        this.turn = this.turn === "W" ? "B" : "W";
+        update(ridref, { turn: this.turn, board: JSON.stringify(this.chessNameMat) });
         
         this.guidemesh && this.scene.remove(this.guidemesh);
         this.prevIntersectChessPiece = null;
       }, duration: 0});
-      this.turn = this.turn === "W" ? "B" : "W";
-      console.log(this.chessNameMat);
-      update(ridref, { turn: this.turn });
-      update(child(bref, `/${movMat.x}`), { [movMat.y]: this.chessNameMat[curMat.x][curMat.y] });
-      update(child(bref, `/${curMat.x}`), { [curMat.y]: 0 });
     }
   }
   getConvertedMatFromPos(position: THREE.Vector3) {

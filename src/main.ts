@@ -17,7 +17,6 @@ let uref: DatabaseReference;
 let isAlreadyJoin: boolean = false;
 
 let ridref: DatabaseReference;
-let bref: DatabaseReference;
 const baseChessNameMat: (string | 0)[][] = [
   ["Black-Rook", "Black-Knight", "Black-Bishop", "Black-Queen", "Black-King", "Black-Bishop", "Black-Knight", "Black-Rook"],
   new Array(8).fill("Black-Pawn"),
@@ -37,14 +36,13 @@ const createRoom = async (data: DataSnapshot) => { // 방 만들기 및 체스 �
 
   if((data as any)[uid].isHost) { // 호스트라면
     ridref = ref(db, `rooms/${Object.keys(data).join('')}`);
-    await set(ridref, { ...data, "board": baseChessNameMat, "turn": "W" });
+    await set(ridref, { ...data, "board": JSON.stringify(baseChessNameMat), "turn": "W" });
     
     onValue(ridref, (snapshot: DataSnapshot) => {
       const data = snapshot.val();
       if(data) {
         app.turn = data.turn;
-        // app.chessNameMat = JSON.parse(data.board);
-        app.chessNameMat = data.board;
+        app.chessNameMat = JSON.parse(data.board);
       }
       console.log("Host", data);
     });
@@ -57,13 +55,10 @@ const createRoom = async (data: DataSnapshot) => { // 방 만들기 및 체스 �
       const data = snapshot.val();
       if(data) {
         app.turn = data.turn;
-        // app.chessNameMat = JSON.parse(data.board);
-        app.chessNameMat = data.board;
+        app.chessNameMat = JSON.parse(data.board);
         console.log("Guest", data);
       }
     });
-    bref = ref(db, `rooms/${Object.keys(data).join('')}/board`);
-
     console.log("Guest");
 
   }
@@ -77,6 +72,7 @@ onAuthStateChanged(auth, async (user) => {
     uref = ref(db, `players/${uid}`);
     
     await get(rref).then((snapshot: DataSnapshot) => {
+
       // 이미 방에 참가되어있는지 확인
       const data = snapshot.val();
       if(data) {
@@ -87,9 +83,7 @@ onAuthStateChanged(auth, async (user) => {
           if(isAlreadyJoin) { // 만약 이미 방에 참가되어있다면
             
             ridref = ref(db, `rooms/${roomKeys[i]}`);
-            bref = ref(db, `rooms/${Object.keys(data).join('')}/board`);
-            // app.chessNameMat = JSON.parse((roomObj as objType).board); // 하고 있었던 체스판 불러오기
-            app.chessNameMat = (roomObj as objType).board;
+            app.chessNameMat = JSON.parse((roomObj as any).board); // 하고 있었던 체스판 불러오기
             app.turn = (roomObj as objType).turn; // 하고 있던 체스턴 불러오기
             app.playerColor = (roomObj as any)[uid].color; // 내가 하고 있던 색 불러오기
           }
@@ -149,4 +143,4 @@ signInAnonymously(auth).catch((error: AuthError) => {
 });
 
 
-export { ridref, bref };
+export { ridref };
