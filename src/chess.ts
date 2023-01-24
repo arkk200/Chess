@@ -8,7 +8,7 @@ import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader';
 import gsap from 'gsap';
-import { update } from 'firebase/database';
+import { remove, update } from 'firebase/database';
 import { ridref } from './main';
 
 export class App {
@@ -27,23 +27,27 @@ export class App {
   tl!: GSAPTimeline;
   playerColor: string;
   turn: string;
-  chessNameMat: (string | 0)[][];
+  chessMeshNameMat: (string | 0)[][];
+  isEnd: boolean;
+  RUWinner: boolean;
 
   constructor() {
     this.playerColor = "";
     this.turn = "W";
-    this.chessNameMat = [
-      ["Black-Rook", "Black-Knight", "Black-Bishop", "Black-Queen", "Black-King", "Black-Bishop", "Black-Knight", "Black-Rook"],
-      new Array(8).fill("Black-Pawn"),
+    this.isEnd = false;
+    this.RUWinner = false;
+    this.chessMeshNameMat = [
+      ["BR1", "BN1", "BB1", "BQ", "BK", "BB2", "BN2", "BR2"],
+      ["BP1", "BP2", "BP3", "BP4", "BP5", "BP6", "BP7", "BP8"],
       new Array(8).fill(0),
       new Array(8).fill(0),
       new Array(8).fill(0),
       new Array(8).fill(0),
-      new Array(8).fill("White-Pawn"),
-      ["White-Rook", "White-Knight", "White-Bishop", "White-Queen", "White-King", "White-Bishop", "White-Knight", "White-Rook"]
+      ["WP1", "WP2", "WP3", "WP4", "WP5", "WP6", "WP7", "WP8"],
+      ["WR1", "WN1", "WB1", "WQ", "WK", "WB2", "WN2", "WR2"]
     ];
 
-    this.chessPiecesName = ["Black-Rook", "Black-Knight", "Black-Bishop", "Black-Queen", "Black-King", "Black-Pawn", "White-Rook", "White-Knight", "White-Bishop", "White-Queen", "White-King", "White-Pawn"];
+    this.chessPiecesName = ["BR1", "BR2", "BN1", "BN2", "BB1", "BB2", "BQ", "BK", "BP1", "BP2", "BP3", "BP4", "BP5", "BP6", "BP7", "BP8", "WR1", "WR2", "WN1", "WN2", "WB1", "WB2", "WQ", "WK", "WP1", "WP2", "WP3", "WP4", "WP5", "WP6", "WP7", "WP8"];
   }
 
   setChess() {
@@ -131,19 +135,74 @@ export class App {
     this.scene.add(board);
   }
   createPieces() {
-
     for(let i = 0; i < 8; i++) {
       for(let j = 0; j < 8; j++) {
-        if(this.chessNameMat[i][j] !== 0) {
-          this.createPiece(this.getConvertedPosFromMat({ x: i, y: j }), this.chessNameMat[i][j] as string);
+        if(this.chessMeshNameMat[i][j] !== 0) {
+          this.createPiece(this.getConvertedPosFromMat({ x: i, y: j }), this.getNameFromMeshName(<string>this.chessMeshNameMat[i][j]), this.chessMeshNameMat[i][j] as string)
         }
       }
     }
   }
-  createPiece(boardPos: THREE.Vector3, name: string) {
+  getNameFromMeshName(meshName: string) {
+    switch(meshName) {
+      case 'BP1':
+      case 'BP2':
+      case 'BP3':
+      case 'BP4':
+      case 'BP5':
+      case 'BP6':
+      case 'BP7':
+      case 'BP8':
+        return 'Black-Pawn';
+      case 'BR1': 
+      case 'BR2':
+        return 'Black-Rook';
+      case 'BN1':
+      case 'BN2':
+        return 'Black-Knight';
+      case 'BB1':
+      case 'BB2':
+        return 'Black-Bishop';
+      case 'BQ':
+        return 'Black-Queen';
+      case 'BK':
+        return 'Black-King';
+      case 'WP1':
+      case 'WP2':
+      case 'WP3':
+      case 'WP4':
+      case 'WP5':
+      case 'WP6':
+      case 'WP7':
+      case 'WP8':
+        return 'White-Pawn';
+      case 'WR1': 
+      case 'WR2':
+        return 'White-Rook';
+      case 'WN1':
+      case 'WN2':
+        return 'White-Knight';
+      case 'WB1':
+      case 'WB2':
+        return 'White-Bishop';
+      case 'WQ':
+        return 'White-Queen';
+      case 'WK':
+        return 'White-King';
+      default:
+        return "";
+    }
+  }
+  createPawn() {
+    for (let i = 0; i < 8; i++) {
+      this.chessMeshNameMat[1][i] = this.createPiece({ x: -14 + i * 4, y: 0.5, z: -10 }, "Black-Pawn", `BP${i+1}`);
+      this.chessMeshNameMat[6][i] = this.createPiece({ x: -14 + i * 4, y: 0.5, z: 10 }, "White-Pawn", `WP${i+1}`);
+    }
+  }
+  createPiece(boardPos: { x: number, y: number, z: number }, name: string, meshName: string) {
     const piece = this.models.getObjectByName(name)?.clone();
     piece?.position.set(boardPos.x, boardPos.y, boardPos.z);
-    if (piece) piece.name = name;
+    if (piece) piece.name = meshName;
     piece && this.scene.add(piece);
     return piece!.name;
   }
@@ -226,24 +285,16 @@ export class App {
 
     let intersectObject = this.getIntesectObject(e);
     if (!intersectObject) return;
+    if(!this.prevIntersectChessPiece) return;
 
-    if (intersectObject.name === "Guide" || !intersectObject.name.startsWith(this.turn)) { // 가이브 메쉬를 클릭했다면
-      if(!this.prevIntersectChessPiece) return;
+    if (intersectObject.name === "Guide" || !intersectObject.name.startsWith(this.turn)) { // 가이브 메쉬(빨간 판대기)를 클릭하거나 상대말을 클릭했다면
       this.outlinePass.selectedObjects = [];
       this.tl = gsap.timeline();
       const curMat = this.getConvertedMatFromPos(this.prevIntersectChessPiece.position);
       const movMat = this.getConvertedMatFromPos(intersectObject.position);
-      this.tl.to(this.prevIntersectChessPiece.position, { x: intersectObject?.position.x, z: intersectObject?.position.z, duration: 1, ease: "power2.inOut" });
       
       this.tl.to({}, { onUpdate: () => {
-        const matrix = this.getConvertedMatFromPos((intersectObject as THREE.Object3D).position);
-        if(this.chessNameMat[matrix.x][matrix.y] !== 0) {
-          this.scene.remove(this.scene.getObjectByName(this.chessNameMat[matrix.x][matrix.y] as string) as THREE.Object3D);
-        }
-        this.chessNameMat[movMat.x][movMat.y] = this.chessNameMat[curMat.x][curMat.y];
-        this.chessNameMat[curMat.x][curMat.y] = 0;
-        this.turn = this.turn === "W" ? "B" : "W";
-        update(ridref, { turn: this.turn, board: JSON.stringify(this.chessNameMat) });
+        update(ridref, { turn: this.turn, board: JSON.stringify(this.chessMeshNameMat), prevMov: JSON.stringify([curMat, movMat]) });
         
         this.guidemesh && this.scene.remove(this.guidemesh);
         this.prevIntersectChessPiece = null;
@@ -257,6 +308,39 @@ export class App {
   }
   getConvertedPosFromMat(mat: { x: number, y: number }) {
     return new THREE.Vector3(-14 + mat.y * 4, 0.5, -14 + mat.x * 4);
+  }
+
+  movChessPiece(mat: [{ x: number, y: number }, { x: number, y: number }]) {
+    if(!mat) return;
+
+    const [curMat, movMat] = mat;
+    const movPos = this.getConvertedPosFromMat(movMat);
+    const curChessName = this.chessMeshNameMat[curMat.x][curMat.y];
+    const movChessName = this.chessMeshNameMat[movMat.x][movMat.y];
+    if(curChessName !== 0 && movChessName !== 0) {
+      if(curChessName[0] === movChessName[0]) {
+        console.log("Do not teamkill!");
+        return;
+      }
+    }
+    this.tl = gsap.timeline();
+    
+    curChessName !== 0 && this.tl.to(this.scene.getObjectByName(curChessName)!.position, { x: movPos.x, z: movPos.z, duration: 1, ease: "power2.inOut" });
+    this.tl.to({}, { onUpdate: () => {
+      this.chessMeshNameMat[movMat.x][movMat.y] = this.chessMeshNameMat[curMat.x][curMat.y];
+      this.chessMeshNameMat[curMat.x][curMat.y] = 0;
+      this.turn = this.turn === "W" ? "B" : "W";
+      if(movChessName !== 0) {
+        if(movChessName === "BK" || movChessName === "WK") {
+          // 잡힌 말이 무슨 색으로 시작하는가
+          if(movChessName.startsWith(this.playerColor)) this.RUWinner = false;
+          else this.RUWinner = true;
+          console.log("Game Over. winner?", this.RUWinner);
+          remove(ridref);
+        }
+        this.scene.remove(this.scene.getObjectByName(movChessName) as THREE.Object3D);
+      }
+    }, duration: 0});
   }
   
 

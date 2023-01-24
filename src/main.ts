@@ -1,3 +1,5 @@
+// this file as firebase app.js
+
 import { auth, db } from './firebaseConfig';
 import { AuthError, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { DatabaseReference, ref, set, onDisconnect, onValue, DataSnapshot, get, remove } from 'firebase/database';
@@ -18,53 +20,39 @@ let isAlreadyJoin: boolean = false;
 
 let ridref: DatabaseReference;
 const baseChessNameMat: (string | 0)[][] = [
-  ["Black-Rook", "Black-Knight", "Black-Bishop", "Black-Queen", "Black-King", "Black-Bishop", "Black-Knight", "Black-Rook"],
-  new Array(8).fill("Black-Pawn"),
+  ["BR1", "BN1", "BB1", "BQ", "BK", "BB2", "BN2", "BR2"],
+  ["BP1", "BP2", "BP3", "BP4", "BP5", "BP6", "BP7", "BP8"],
   new Array(8).fill(0),
   new Array(8).fill(0),
   new Array(8).fill(0),
   new Array(8).fill(0),
-  new Array(8).fill("White-Pawn"),
-  ["White-Rook", "White-Knight", "White-Bishop", "White-Queen", "White-King", "White-Bishop", "White-Knight", "White-Rook"]
+  ["WP1", "WP2", "WP3", "WP4", "WP5", "WP6", "WP7", "WP8"],
+  ["WR1", "WN1", "WB1", "WQ", "WK", "WB2", "WN2", "WR2"]
 ];
 
 const createRoom = async (data: DataSnapshot) => { // 방 만들기 및 체스 게임 생성
-  
-  app.chessNameMat = baseChessNameMat;
+  app.chessMeshNameMat = baseChessNameMat;
   app.playerColor = (data as any)[uid].color;
   
-
-  if((data as any)[uid].isHost) { // 호스트라면
-    ridref = ref(db, `rooms/${Object.keys(data).join('')}`);
-    await set(ridref, { ...data, "board": JSON.stringify(baseChessNameMat), "turn": "W" });
-    
-    onValue(ridref, (snapshot: DataSnapshot) => {
-      const data = snapshot.val();
-      if(data) {
-        app.turn = data.turn;
-        app.chessNameMat = JSON.parse(data.board);
-      }
-      console.log("Host", data);
-    });
-    console.log("Host");
-
-  } else { // 호스트가 아니라면
-    ridref = ref(db, `rooms/${Object.keys(data).join('')}`);
-
-    onValue(ridref, (snapshot: DataSnapshot) => {
-      const data = snapshot.val();
-      if(data) {
-        app.turn = data.turn;
-        app.chessNameMat = JSON.parse(data.board);
-        console.log("Guest", data);
-      }
-    });
-    console.log("Guest");
-
+  ridref = ref(db, `rooms/${Object.keys(data).join('')}`);
+  
+  // 호스트라면
+  if((data as any)[uid].isHost) {
+    await set(ridref, { ...data, "board": JSON.stringify(baseChessNameMat), "turn": "W", "prevMov": 0 });
   }
+  onValue(ridref, (snapshot: DataSnapshot) => {
+    const data = snapshot.val();
+    if(data) {
+      app.turn = data.turn;
+      app.chessMeshNameMat = JSON.parse(data.board);
+      app.movChessPiece(JSON.parse(data.prevMov));
+    }
+  });
+
   app.setChess();
 }
 
+document.querySelector('start-screen')?.classList.add('hide');
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     // logged in!
@@ -79,11 +67,11 @@ onAuthStateChanged(auth, async (user) => {
         const roomKeys = Object.keys(data);
         isAlreadyJoin = Object.values(data).some((roomObj, i) => {
           
-          const isAlreadyJoin = Object.keys(roomObj as objType).some(key => key === uid);
+          const isAlreadyJoin: boolean = Object.keys(roomObj as objType).some(key => key === uid);
           if(isAlreadyJoin) { // 만약 이미 방에 참가되어있다면
             
             ridref = ref(db, `rooms/${roomKeys[i]}`);
-            app.chessNameMat = JSON.parse((roomObj as any).board); // 하고 있었던 체스판 불러오기
+            app.chessMeshNameMat = JSON.parse((roomObj as any).board); // 하고 있었던 체스판 불러오기
             app.turn = (roomObj as objType).turn; // 하고 있던 체스턴 불러오기
             app.playerColor = (roomObj as any)[uid].color; // 내가 하고 있던 색 불러오기
           }
@@ -95,7 +83,14 @@ onAuthStateChanged(auth, async (user) => {
     });
 
     if(isAlreadyJoin) {
-
+      onValue(ridref, (snapshot: DataSnapshot) => {
+        const data = snapshot.val();
+        if(data) {
+          app.turn = data.turn;
+          app.chessMeshNameMat = JSON.parse(data.board);
+          app.movChessPiece(JSON.parse(data.prevMov));
+        }
+      });
       // 이미 참가하고 있다면
       app.setChess();
 
@@ -120,8 +115,9 @@ onAuthStateChanged(auth, async (user) => {
 
       // 참가하지 않았다면 참가시키기
       onValue(pref, (snapshot: DataSnapshot) => { // 플레이어 데이터를 가져와 방 만들기
+        console.log("Who connected");
         const data: DataSnapshot = snapshot.val();
-        if(data && Object.keys(data).length === 2) {
+        if(data && Object.keys(data).length === 2 && Object.keys(data).includes(uid)) {
           createRoom(data);
           remove(pref);
         }
@@ -134,13 +130,10 @@ onAuthStateChanged(auth, async (user) => {
     // logged out.
 
   }
-})
-
+});
 signInAnonymously(auth).catch((error: AuthError) => {
   const errorCode = error.code;
   const errorMessage = error.message;
   alert(`Error(${errorCode}): ${errorMessage}`);
 });
-
-
 export { ridref };
