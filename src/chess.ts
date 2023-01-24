@@ -56,6 +56,7 @@ export class App {
     this.setupModels();
     this.setEvents();
     this.setupRendering();
+    this.setupDomControls();
   }
 
   setupDefault() {
@@ -68,12 +69,12 @@ export class App {
       0.1,
       1000
     );
-    this.camera.position.set(0, 30, 30);
+    this.camera.position.set(0, 30, 30 * (this.playerColor === "B" ? -1 : 1));
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    document.body.appendChild(this.renderer.domElement);
+    document.querySelector('.game-screen')?.appendChild(this.renderer.domElement);
 
     const renderTarget = new THREE.WebGLRenderTarget(1024, 1024, { stencilBuffer: true });
 
@@ -331,16 +332,28 @@ export class App {
       this.chessMeshNameMat[curMat.x][curMat.y] = 0;
       this.turn = this.turn === "W" ? "B" : "W";
       if(movChessName !== 0) {
+        this.scene.remove(this.scene.getObjectByName(movChessName) as THREE.Object3D);
         if(movChessName === "BK" || movChessName === "WK") {
           // 잡힌 말이 무슨 색으로 시작하는가
-          if(movChessName.startsWith(this.playerColor)) this.RUWinner = false;
-          else this.RUWinner = true;
-          console.log("Game Over. winner?", this.RUWinner);
-          remove(ridref);
+          setTimeout(() => { // 왕이 사라지는 것까지 보이게 함
+            if(movChessName.startsWith(this.playerColor)) alert('당신이 졌습니다.');
+            else alert('당신이 이겼습니다.')
+            remove(ridref);
+            window.location.reload();
+          }, 100);
         }
-        this.scene.remove(this.scene.getObjectByName(movChessName) as THREE.Object3D);
       }
     }, duration: 0});
+  }
+
+  setupDomControls() {
+    const $GGBtn = document.querySelector('.GG-btn');
+    $GGBtn?.addEventListener('click', () => {
+      const ok = confirm("포기하시겠습니까?");
+      if(ok) {
+        update(ridref, { winner: this.playerColor === "W" ? "B" : "W" });
+      }
+    });
   }
   
 

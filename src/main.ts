@@ -1,9 +1,15 @@
-// this file as firebase app.js
+/*
+
+
+
+
+this file as firebase app.js
+
+ */
 
 import { auth, db } from './firebaseConfig';
 import { AuthError, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { DatabaseReference, ref, set, onDisconnect, onValue, DataSnapshot, get, remove } from 'firebase/database';
-import './style.css';
 import { App } from './chess';
 
 interface objType {
@@ -30,7 +36,32 @@ const baseChessNameMat: (string | 0)[][] = [
   ["WR1", "WN1", "WB1", "WQ", "WK", "WB2", "WN2", "WR2"]
 ];
 
+function setupRidrefSnapshot(app: App) {
+  onValue(ridref, (snapshot: DataSnapshot) => {
+    const data = snapshot.val();
+    if(data) {
+      if(data.winner !== "") {
+        if(app.playerColor === data.winner) {
+          alert("당신이 이겼습니다.");
+        } else {
+          alert("당신이 졌습니다.");
+        }
+        remove(ridref);
+        window.location.reload();
+        return;
+      }
+      app.turn = data.turn;
+      app.chessMeshNameMat = JSON.parse(data.board);
+      app.movChessPiece(JSON.parse(data.prevMov));
+    }
+  });
+  app.setChess();
+}
+
 const createRoom = async (data: DataSnapshot) => { // 방 만들기 및 체스 게임 생성
+  document.querySelector('.waiting-screen')?.classList.add('hide');
+  document.querySelector('.game-screen')?.classList.remove('hide');
+
   app.chessMeshNameMat = baseChessNameMat;
   app.playerColor = (data as any)[uid].color;
   
@@ -38,30 +69,61 @@ const createRoom = async (data: DataSnapshot) => { // 방 만들기 및 체스 �
   
   // 호스트라면
   if((data as any)[uid].isHost) {
-    await set(ridref, { ...data, "board": JSON.stringify(baseChessNameMat), "turn": "W", "prevMov": 0 });
+    await set(ridref, { ...data, board: JSON.stringify(baseChessNameMat), turn: "W", prevMov: 0, winner: "" });
   }
-  onValue(ridref, (snapshot: DataSnapshot) => {
-    const data = snapshot.val();
-    if(data) {
-      app.turn = data.turn;
-      app.chessMeshNameMat = JSON.parse(data.board);
-      app.movChessPiece(JSON.parse(data.prevMov));
-    }
-  });
-
-  app.setChess();
+  setupRidrefSnapshot(app);
 }
 
-document.querySelector('start-screen')?.classList.add('hide');
+
+function joinGame(uid: string) {
+  document.querySelector('.start-screen')?.classList.add('hide');
+  document.querySelector('.waiting-screen')?.classList.remove('hide');
+
+  if(isAlreadyJoin) {
+    // 이미 참가하고 있다면
+    setupRidrefSnapshot(app); // 룸에 값 스냅샷만 설정해줌
+  } else {
+
+    get(pref).then((snapshot: DataSnapshot) => {
+      const data = snapshot.val();
+      if(!data) {
+        set(uref, {
+          time: Date.now(),
+          isHost: true,
+          color: "W"
+        });
+      } else {
+        set(uref, {
+          time: Date.now(),
+          isHost: false,
+          color: "B"
+        });
+      }
+    });
+
+    // 참가하지 않았다면 참가시키기
+    onValue(pref, (snapshot: DataSnapshot) => { // 플레이어 데이터를 가져와 방 만들기
+      console.log("Who connected");
+      const data: DataSnapshot = snapshot.val();
+      if(data && Object.keys(data).length === 2 && Object.keys(data).includes(uid)) {
+        createRoom(data);
+        remove(pref);
+      }
+    });
+
+
+  }
+}
+
+
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     // logged in!
     uid = user.uid;
     uref = ref(db, `players/${uid}`);
-    
-    await get(rref).then((snapshot: DataSnapshot) => {
 
-      // 이미 방에 참가되어있는지 확인
+    // 이미 방에 참가되어있는지 확인
+    await get(rref).then((snapshot: DataSnapshot) => {
       const data = snapshot.val();
       if(data) {
         const roomKeys = Object.keys(data);
@@ -76,56 +138,19 @@ onAuthStateChanged(auth, async (user) => {
             app.playerColor = (roomObj as any)[uid].color; // 내가 하고 있던 색 불러오기
           }
           return isAlreadyJoin;
-
         });
-        
       }
     });
 
-    if(isAlreadyJoin) {
-      onValue(ridref, (snapshot: DataSnapshot) => {
-        const data = snapshot.val();
-        if(data) {
-          app.turn = data.turn;
-          app.chessMeshNameMat = JSON.parse(data.board);
-          app.movChessPiece(JSON.parse(data.prevMov));
-        }
-      });
-      // 이미 참가하고 있다면
-      app.setChess();
+    const btn = document.createElement('button');
+    btn.className = "start-btn";
+    btn.innerText = isAlreadyJoin ? "재참가하기" : "시작하기"; 
+    btn.addEventListener('click', () => joinGame(uid));
 
-    } else {
+    document.querySelector('.start-screen')?.appendChild(btn);
 
-      get(pref).then((snapshot: DataSnapshot) => {
-        const data = snapshot.val();
-        if(!data) {
-          set(uref, {
-            time: Date.now(),
-            isHost: true,
-            color: "W"
-          });
-        } else {
-          set(uref, {
-            time: Date.now(),
-            isHost: false,
-            color: "B"
-          });
-        }
-      });
-
-      // 참가하지 않았다면 참가시키기
-      onValue(pref, (snapshot: DataSnapshot) => { // 플레이어 데이터를 가져와 방 만들기
-        console.log("Who connected");
-        const data: DataSnapshot = snapshot.val();
-        if(data && Object.keys(data).length === 2 && Object.keys(data).includes(uid)) {
-          createRoom(data);
-          remove(pref);
-        }
-      });
-
-
-    }
     onDisconnect(uref).remove();
+
   } else {
     // logged out.
 
@@ -136,4 +161,6 @@ signInAnonymously(auth).catch((error: AuthError) => {
   const errorMessage = error.message;
   alert(`Error(${errorCode}): ${errorMessage}`);
 });
+
+
 export { ridref };

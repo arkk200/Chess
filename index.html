@@ -5,10 +5,19 @@
     <link rel="icon" type="image/png" href="/chess.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="google" value="notranslate" />
+    <link rel="stylesheet" href="src/style.css">
     <title>Chess</title>
   </head>
   <body>
-    <button class="GG-btn">GG버튼</button>
+    <div class="start-screen">
+      <img src="/startScreen.png" />
+    </div>
+    <div class="waiting-screen hide">
+      <h1>상대방을 기다리는 중...</h1>
+    </div>
+    <div class="game-screen hide">
+      <button class="GG-btn">GG버튼</button>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
