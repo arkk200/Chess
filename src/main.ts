@@ -55,7 +55,6 @@ function setupRidrefSnapshot(app: App) {
       app.movChessPiece(JSON.parse(data.prevMov));
     }
   });
-  app.setChess();
 }
 
 const createRoom = async (data: DataSnapshot) => { // 방 만들기 및 체스 게임 생성
@@ -72,6 +71,7 @@ const createRoom = async (data: DataSnapshot) => { // 방 만들기 및 체스 �
     await set(ridref, { ...data, board: JSON.stringify(baseChessNameMat), turn: "W", prevMov: 0, winner: "" });
   }
   setupRidrefSnapshot(app);
+  app.setChess();
 }
 
 
@@ -81,7 +81,7 @@ function joinGame(uid: string) {
 
   if(isAlreadyJoin) {
     // 이미 참가하고 있다면
-    setupRidrefSnapshot(app); // 룸에 값 스냅샷만 설정해줌
+    app.setChess();
   } else {
 
     get(pref).then((snapshot: DataSnapshot) => {
@@ -136,6 +136,8 @@ onAuthStateChanged(auth, async (user) => {
             app.chessMeshNameMat = JSON.parse((roomObj as any).board); // 하고 있었던 체스판 불러오기
             app.turn = (roomObj as objType).turn; // 하고 있던 체스턴 불러오기
             app.playerColor = (roomObj as any)[uid].color; // 내가 하고 있던 색 불러오기
+            setupRidrefSnapshot(app);
+
           }
           return isAlreadyJoin;
         });
