@@ -81,6 +81,10 @@ function joinGame(uid: string) {
 
   if(isAlreadyJoin) {
     // 이미 참가하고 있다면
+    document.querySelector('.waiting-screen')?.classList.add('hide');
+    document.querySelector('.game-screen')?.classList.remove('hide');
+    
+    setupRidrefSnapshot(app);
     app.setChess();
   } else {
 
@@ -130,6 +134,7 @@ onAuthStateChanged(auth, async (user) => {
         isAlreadyJoin = Object.values(data).some((roomObj, i) => {
           
           const isAlreadyJoin: boolean = Object.keys(roomObj as objType).some(key => key === uid);
+
           if(isAlreadyJoin) { // 만약 이미 방에 참가되어있다면
             
             ridref = ref(db, `rooms/${roomKeys[i]}`);
@@ -146,7 +151,7 @@ onAuthStateChanged(auth, async (user) => {
 
     const btn = document.createElement('button');
     btn.className = "start-btn";
-    btn.innerText = isAlreadyJoin ? "재참가하기" : "시작하기"; 
+    btn.innerText = isAlreadyJoin ? "재참가하기" : "시작하기";
     btn.addEventListener('click', () => joinGame(uid));
 
     document.querySelector('.start-screen')?.appendChild(btn);
