@@ -17,7 +17,7 @@ export class App {
   renderer!: THREE.WebGLRenderer;
   models!: THREE.Object3D;
   controls!: OrbitControls;
-  pointLight!: THREE.PointLight;
+  spotLight!: THREE.SpotLight;
   composer!: EffectComposer;
   outlinePass!: OutlinePass;
   effectFXAA!: ShaderPass;
@@ -74,6 +74,7 @@ export class App {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.shadowMap.enabled = true;
     document.querySelector('.game-screen')?.appendChild(this.renderer.domElement);
 
     const renderTarget = new THREE.WebGLRenderTarget(1024, 1024, { stencilBuffer: true });
@@ -116,9 +117,10 @@ export class App {
     this.scene.add(light);
 
     for (let i = 0; i < 4; i++) {
-      this.pointLight = new THREE.PointLight("white", 1);
-      this.pointLight.position.set(200 * (Math.floor(i / 2) > 0 ? -1 : 1), 40, 200 * (i % 2 === 0 ? -1 : 1));
-      this.scene.add(this.pointLight);
+      this.spotLight = new THREE.SpotLight("white", 1);
+      this.spotLight.position.set(200 * (Math.floor(i / 2) > 0 ? -1 : 1), 40, 200 * (i % 2 === 0 ? -1 : 1));
+      this.spotLight.castShadow = true;
+      this.scene.add(this.spotLight);
     }
   }
 
@@ -132,7 +134,7 @@ export class App {
   createBoard() {
     const board = this.models.getObjectByName("Board");
     if(!board) return;
-
+    board.traverse(child => child.receiveShadow = true)
     this.scene.add(board);
   }
   createPieces() {
@@ -204,6 +206,7 @@ export class App {
     const piece = this.models.getObjectByName(name)?.clone();
     piece?.position.set(boardPos.x, boardPos.y, boardPos.z);
     if (piece) piece.name = meshName;
+    piece?.traverse(child => child.castShadow = true);
     piece && this.scene.add(piece);
     return piece!.name;
   }
