@@ -58,7 +58,7 @@ const createRoom = async (playerData: DataSnapshot) => {
 
 
 function joinRoom() {
-  domControls.setupWaitingModal();
+  domControls.setupWaitingModal(uref);
 
   get(pref).then((snapshot: DataSnapshot) => {
     const someoneJoined = snapshot.val();
@@ -88,6 +88,7 @@ function joinRoom() {
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) return;
+  domControls.setupMainScreen();
 
   uid = user.uid;
   uref = ref(db, `players/${uid}`);
@@ -120,8 +121,7 @@ onAuthStateChanged(auth, async (user) => {
     return;
   }
 
-  const $btn = domControls.setupJoinButton();
-  $btn.addEventListener('click', joinRoom);
+  domControls.setupJoinButton(joinRoom);
 
   onDisconnect(uref).remove();
 });

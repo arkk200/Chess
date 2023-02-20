@@ -1,26 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/chess.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="google" value="notranslate" />
-    <link rel="stylesheet" href="src/css/style.css">
-    <title>Chess</title>
-  </head>
-  <body>
-    <div id="root">
-      <div class="main-screen">
-        <img src="/chessThumbnail.png" />
-        <button class="start-btn" disabled>join</button>
-        <div class="waiting-modal hide">
-          looking for a game partner...
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/png" href="/chess.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="google" value="notranslate" />
+  <link rel="stylesheet" href="src/css/style.css">
+  <title>Chess</title>
+</head>
+
+<body>
+  <div id="root">
+    <div class="main-screen">
+      <img class="main-screen-background" src="/main-screen-background.png" />
+      <button class="help-btn">
+        <img class="question-mark" src="/question-mark.png" />
+      </button>
+      <div class="help-modal hide">
+        <div class="help-modal-content">
+          <div>1. You can click a piece to select/cancel it.</div>
+          <div>2. You can move a selected piece to a double-click position.</div>
         </div>
+        <button class="help-modal-close-btn">close</button>
       </div>
-      <div class="game-screen hide">
-        <button class="giveup-btn">Give up</button>
+
+      <button class="start-btn" disabled>join</button>
+      <div class="waiting-modal hide">
+        looking for a game partner...
+        <button class="cancel-waiting-btn">cancel</button>
       </div>
     </div>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+    <div class="game-screen hide">
+      <button class="giveup-btn">Give up</button>
+    </div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
 </html>
