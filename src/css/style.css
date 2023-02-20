@@ -1,0 +1,58 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+#root .main-screen {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+}
+#root .main-screen img {
+  height: 100vh;
+}
+#root .main-screen .start-btn {
+  width: 150px;
+  height: 40px;
+  position: absolute;
+  top: 80%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+#root .main-screen .start-btn:focus {
+  outline: none;
+}
+#root .main-screen .waiting-modal {
+  width: 150px;
+  height: 200px;
+  border-radius: 20px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  background-color: rgba(255, 255, 255, 0.75);
+  display: flex;
+  align-items: center;
+  text-align: center;
+}
+#root .game-screen {
+  position: relative;
+}
+#root .game-screen .giveup-btn {
+  width: 150px;
+  height: 40px;
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  z-index: 1;
+}
+
+.hide {
+  display: none !important;
+}
+
+/*# sourceMappingURL=style.css.map */
