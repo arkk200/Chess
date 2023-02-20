@@ -4,16 +4,61 @@
   box-sizing: border-box;
 }
 
-#root .main-screen {
+#root div.main-screen {
   position: relative;
   display: flex;
   justify-content: center;
   overflow: hidden;
 }
-#root .main-screen img {
+#root div.main-screen img.main-screen-background {
+  display: block;
   height: 100vh;
 }
-#root .main-screen .start-btn {
+#root div.main-screen button.help-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background-color: rgba(0, 0, 0, 0);
+  border: 2.5px solid #000;
+  border-radius: 999px;
+  padding: 5px;
+  cursor: pointer;
+}
+#root div.main-screen button.help-btn img.question-mark {
+  display: block;
+  height: 30px;
+}
+#root div.main-screen div.help-modal {
+  box-sizing: border-box;
+  width: 250px;
+  height: 300px;
+  padding: 20px;
+  border-radius: 20px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  background-color: rgba(255, 255, 255, 0.75);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  row-gap: 20px;
+}
+#root div.main-screen div.help-modal div.help-modal-content {
+  display: flex;
+  flex-direction: column;
+  row-gap: 15px;
+}
+#root div.main-screen div.help-modal button.help-modal-close-btn {
+  padding: 5px;
+  cursor: pointer;
+}
+#root div.main-screen div.help-modal button.help-modal-close-btn:focus {
+  outline: none;
+}
+#root div.main-screen button.start-btn {
   width: 150px;
   height: 40px;
   position: absolute;
@@ -21,11 +66,12 @@
   left: 50%;
   transform: translateX(-50%);
   z-index: 1;
+  cursor: pointer;
 }
-#root .main-screen .start-btn:focus {
+#root div.main-screen button.start-btn:focus {
   outline: none;
 }
-#root .main-screen .waiting-modal {
+#root div.main-screen div.waiting-modal {
   width: 150px;
   height: 200px;
   border-radius: 20px;
@@ -36,19 +82,30 @@
   z-index: 1;
   background-color: rgba(255, 255, 255, 0.75);
   display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  row-gap: 20px;
   text-align: center;
 }
-#root .game-screen {
+#root div.main-screen div.waiting-modal .cancel-waiting-btn {
+  padding: 5px;
+  cursor: pointer;
+}
+#root div.main-screen div.waiting-modal .cancel-waiting-btn:focus {
+  outline: none;
+}
+#root div.game-screen {
   position: relative;
 }
-#root .game-screen .giveup-btn {
+#root div.game-screen button.giveup-btn {
   width: 150px;
   height: 40px;
   position: absolute;
   bottom: 10px;
   right: 10px;
   z-index: 1;
+  cursor: pointer;
 }
 
 .hide {
